@@ -57,7 +57,7 @@ export default class BattleLog extends SubCommand {
     });
 
     let content = '';
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < logs.length; i++) {
       const log = logs[i]!;
       const map = log.event.map ? `- ${log.event.map}` : '';
       const result = log.battle.result ? `| ${log.battle.result}` : '';
