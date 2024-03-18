@@ -59,8 +59,8 @@ export default class BattleLog extends SubCommand {
     let content = '';
     for (let i = 0; i < 20; i++) {
       const log = logs[i]!;
-      let map = log.event.map ? `- ${log.event.map}` : '';
-      let result = log.battle.result ? `| ${log.battle.result}` : '';
+      const map = log.event.map ? `- ${log.event.map}` : '';
+      const result = log.battle.result ? `| ${log.battle.result}` : '';
       content += `${
         log.battle.mode
       } ${map} | ${log.battleTime.toUTCString()} ${result}\n`;
