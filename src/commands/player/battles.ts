@@ -7,7 +7,7 @@ import {
   OKFunction,
   Embed,
 } from 'seyfert';
-import { Battlelog } from '../../package';
+import { Battlelog, GameModes } from '../../package';
 
 const cmd = {
   name: 'battlelog',
@@ -23,6 +23,10 @@ const options = {
     },
   }),
 };
+
+type AverageData = {
+  [ k in GameModes ]: number
+}
 
 @Declare(cmd)
 @Options(options)
@@ -40,9 +44,32 @@ export default class BattleLog extends SubCommand {
       });
     }
 
-    const modeList = Array.from(new Set(logs.map((item) => item.battle.mode)));
-    const averages: { [k: string]: number } = {};
+    const content = this.getContent(logs);
+    const averages = this.getAverages(logs);
+    const embed = new Embed().setDescription(content);
 
+    console.log(averages);
+    ctx.editOrReply({ embeds: [embed] });
+  }
+
+  getContent(logs: Battlelog[]): string {
+    let content = '';
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i]!;
+      const map = log.event.map ? `- ${log.event.map}` : '';
+      const result = log.battle.result ? `| ${log.battle.result}` : '';
+      content += `${
+        log.battle.mode
+      } ${map} | ${log.battleTime.toUTCString()} ${result}\n`;
+    }
+
+    return content
+  }
+
+  getAverages(logs: Battlelog[]): AverageData {
+    const modeList = Array.from(new Set(logs.map((item) => item.battle.mode)));
+
+    let averages: AverageData = {} as AverageData;
     modeList.forEach((mode) => {
       const battles = logs.filter(
         (log) => log.battle.mode === mode && log.battle.duration
@@ -56,19 +83,6 @@ export default class BattleLog extends SubCommand {
       }
     });
 
-    let content = '';
-    for (let i = 0; i < logs.length; i++) {
-      const log = logs[i]!;
-      const map = log.event.map ? `- ${log.event.map}` : '';
-      const result = log.battle.result ? `| ${log.battle.result}` : '';
-      content += `${
-        log.battle.mode
-      } ${map} | ${log.battleTime.toUTCString()} ${result}\n`;
-    }
-
-    console.log(averages);
-    const embed = new Embed().setDescription(content);
-
-    ctx.editOrReply({ embeds: [embed] });
+    return averages;
   }
 }
