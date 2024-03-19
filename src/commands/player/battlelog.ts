@@ -10,7 +10,7 @@ import {
 } from 'seyfert';
 import { Battlelog, GameModes } from '../../package';
 import { makeBattleLogGraphic } from '../../utils/images/battlelog';
-import { formattedGameModes } from '../../utils/constants';
+import { Colors, formattedGameModes } from '../../utils/constants';
 
 const cmd = {
   name: 'battlelog',
@@ -47,18 +47,19 @@ export default class BattleLog extends SubCommand {
       });
     }
 
-    // const content = this.getContent(logs);
+    const content = this.getContent(logs);
     const averages = this.getAverages(logs);
     const playerBuffer = await makeBattleLogGraphic(averages);
 
     const embed = new Embed()
-      // .setDescription(content)
+      .setColor(Colors.DodgerBlue)
       .setImage('attachment://battlelog.png')
+      // .setDescription(content)
       .setFooter({
         text: `The graph shows the time played in the last ${logs.length} games.`,
       });
 
-    // console.log(averages);
+    console.log(shard(content, 10));
     ctx.editOrReply({
       embeds: [embed],
       files: [
@@ -70,21 +71,25 @@ export default class BattleLog extends SubCommand {
     });
   }
 
-  getContent(logs: Battlelog[]): string {
-    let content = '';
+  private getContent(logs: Battlelog[]): string[] {
+    const content = <string[]>[];
     for (let i = 0; i < logs.length; i++) {
       const log = logs[i]!;
-      const map = log.event.map ? `- ${log.event.map}` : '';
+      // const map = log.event.map ? `- ${log.event.map}` : '';
       const result = log.battle.result ? `| ${log.battle.result}` : '';
-      content += `${
-        log.battle.mode
-      } ${map} | ${log.battleTime.toUTCString()} ${result}\n`;
+      content.push(
+        `<t:${log.battleTime.getTime() / 1000}:f> ${
+          formattedGameModes[
+            log.battle.mode as keyof typeof formattedGameModes
+          ] ?? log.battle.mode
+        } ${result}`
+      );
     }
 
     return content;
   }
 
-  getAverages(logs: Battlelog<Date>[]): AverageData {
+  private getAverages(logs: Battlelog<Date>[]): AverageData {
     const modeList = Array.from(new Set(logs.map((item) => item.battle.mode)));
 
     let averages: AverageData = {} as AverageData;
@@ -106,4 +111,16 @@ export default class BattleLog extends SubCommand {
       Object.entries(averages).sort(([, a], [, b]) => a - b)
     ) as AverageData;
   }
+}
+
+function shard(array: string[], length: number): string[][] {
+  if (!(array instanceof Array)) return array;
+  const final: string[][] = [];
+  let i = 0;
+  for (const element of array) {
+    if (!final[i]) final[i] = [];
+    final[i]!.push(element);
+    if (final[i]!.length >= length) ++i;
+  }
+  return final;
 }

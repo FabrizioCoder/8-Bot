@@ -10,6 +10,7 @@ import {
 import { getIcon } from '../../utils/functions';
 import { formatTag } from '../../package/functions';
 import { Player } from '../../package';
+import { Colors } from '../../utils/constants';
 
 const options = {
   tag: createStringOption({
@@ -44,6 +45,7 @@ export default class Profile extends SubCommand {
 
     // console.log(player);
     const embed = new Embed()
+      .setColor(Colors.DodgerBlue)
       .setAuthor({
         name: `${player.name} (${player.tag})`,
         url: `https://brawlify.com/stats/profile/${formatTag(player.tag)}`,
