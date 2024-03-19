@@ -42,7 +42,7 @@ export default class Profile extends SubCommand {
 
     const icon = getIcon(player.icon.id)!;
 
-    console.log(player);
+    // console.log(player);
     const embed = new Embed()
       .setAuthor({
         name: `${player.name} (${player.tag})`,

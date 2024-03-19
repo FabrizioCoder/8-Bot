@@ -6,8 +6,11 @@ import {
   createStringOption,
   OKFunction,
   Embed,
+  AttachmentBuilder,
 } from 'seyfert';
 import { Battlelog, GameModes } from '../../package';
+import { makeBattleLogGraphic } from '../../utils/images/battlelog';
+import { formattedGameModes } from '../../utils/constants';
 
 const cmd = {
   name: 'battlelog',
@@ -25,8 +28,8 @@ const options = {
 };
 
 type AverageData = {
-  [ k in GameModes ]: number
-}
+  [k in GameModes]: number;
+};
 
 @Declare(cmd)
 @Options(options)
@@ -44,12 +47,27 @@ export default class BattleLog extends SubCommand {
       });
     }
 
-    const content = this.getContent(logs);
+    // const content = this.getContent(logs);
     const averages = this.getAverages(logs);
-    const embed = new Embed().setDescription(content);
+    const playerBuffer = await makeBattleLogGraphic(averages);
 
-    console.log(averages);
-    ctx.editOrReply({ embeds: [embed] });
+    const embed = new Embed()
+      // .setDescription(content)
+      .setImage('attachment://battlelog.png')
+      .setFooter({
+        text: `The graph shows the time played in the last ${logs.length} games.`,
+      });
+
+    // console.log(averages);
+    ctx.editOrReply({
+      embeds: [embed],
+      files: [
+        new AttachmentBuilder()
+          .setFile('buffer', playerBuffer)
+          .setName('battlelog.png')
+          .setDescription('Time Played graphic'),
+      ],
+    });
   }
 
   getContent(logs: Battlelog[]): string {
@@ -63,26 +81,29 @@ export default class BattleLog extends SubCommand {
       } ${map} | ${log.battleTime.toUTCString()} ${result}\n`;
     }
 
-    return content
+    return content;
   }
 
-  getAverages(logs: Battlelog[]): AverageData {
+  getAverages(logs: Battlelog<Date>[]): AverageData {
     const modeList = Array.from(new Set(logs.map((item) => item.battle.mode)));
 
     let averages: AverageData = {} as AverageData;
     modeList.forEach((mode) => {
       const battles = logs.filter(
-        (log) => log.battle.mode === mode && log.battle.duration
+        (log) => log.battle.mode === mode && log.battle.duration > 0
       );
 
       if (battles.length > 0) {
-        averages[mode] = Math.round(
-          battles.reduce((sum, log) => sum + log.battle.duration!, 0) /
-            battles.length
+        averages[
+          formattedGameModes[mode as keyof typeof formattedGameModes] ?? mode
+        ] = Math.round(
+          battles.reduce((sum, log) => sum + log.battle.duration / 60, 0)
         );
       }
     });
 
-    return averages;
+    return Object.fromEntries(
+      Object.entries(averages).sort(([, a], [, b]) => a - b)
+    ) as AverageData;
   }
 }
