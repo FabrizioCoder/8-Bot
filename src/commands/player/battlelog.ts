@@ -8,9 +8,12 @@ import {
   Embed,
   AttachmentBuilder,
 } from 'seyfert';
-import { Battlelog, GameModes } from '../../package';
+import { Battlelog, GameModes, Player } from '../../package';
 import { makeBattleLogGraphic } from '../../utils/images/battlelog';
 import { Colors, formattedGameModes } from '../../utils/constants';
+import { EmbedPaginator } from '../../utils/paginator';
+import { getIcon } from '../../utils/functions';
+import { formatTag } from '../../package/functions';
 
 const cmd = {
   name: 'battlelog',
@@ -38,6 +41,15 @@ export default class BattleLog extends SubCommand {
     await ctx.deferReply();
     const { tag } = ctx.options;
 
+    let player: Player;
+    try {
+      player = await ctx.client.api.players.get(tag);
+    } catch (e) {
+      return ctx.editOrReply({
+        content: '⚠️ Player not found. Please check the tag and try again.',
+      });
+    }
+
     let logs: Battlelog[];
     try {
       logs = await ctx.client.api.players.getBattleLog(tag);
@@ -50,25 +62,42 @@ export default class BattleLog extends SubCommand {
     const content = this.getContent(logs);
     const averages = this.getAverages(logs);
     const playerBuffer = await makeBattleLogGraphic(averages);
+    const icon = getIcon(player.icon.id)!;
 
-    const embed = new Embed()
+    const baseEmbed = new Embed()
       .setColor(Colors.DodgerBlue)
       .setImage('attachment://battlelog.png')
-      // .setDescription(content)
+      .setAuthor({
+        name: player.tag,
+        url: `https://brawlify.com/stats/profile/${formatTag(player.tag)}`,
+      })
+      .setTitle(`Battle Log for ${player.name}`)
+      .setThumbnail(icon.imageUrl)
       .setFooter({
         text: `The graph shows the time played in the last ${logs.length} games.`,
       });
 
-    console.log(shard(content, 10));
-    ctx.editOrReply({
-      embeds: [embed],
-      files: [
-        new AttachmentBuilder()
-          .setFile('buffer', playerBuffer)
-          .setName('battlelog.png')
-          .setDescription('Time Played graphic'),
-      ],
+    const shards = shard(content, 10);
+    let embeds: Embed[] = [];
+    shards.forEach((shard, i) => {
+      embeds.push(
+        new Embed()
+          .setColor(Colors.DodgerBlue)
+          .setDescription(shard.join('\n'))
+          .setFooter({
+            text: `Page ${i + 1} of ${shards.length}`,
+          })
+      );
     });
+
+    const paginator = new EmbedPaginator(ctx, embeds, baseEmbed, [
+      new AttachmentBuilder()
+        .setFile('buffer', playerBuffer)
+        .setName('battlelog.png')
+        .setDescription('Time Played graphic'),
+    ]);
+
+    await paginator.start();
   }
 
   private getContent(logs: Battlelog[]): string[] {
@@ -76,13 +105,21 @@ export default class BattleLog extends SubCommand {
     for (let i = 0; i < logs.length; i++) {
       const log = logs[i]!;
       // const map = log.event.map ? `- ${log.event.map}` : '';
-      const result = log.battle.result ? `| ${log.battle.result}` : '';
+      const result = log.battle.result
+        ? `[${
+            log.battle.result === 'victory'
+              ? '✅'
+              : log.battle.result === 'defeat'
+              ? '❌'
+              : '⭕'
+          }] `
+        : '';
       content.push(
-        `<t:${log.battleTime.getTime() / 1000}:f> ${
+        `${result}<t:${log.battleTime.getTime() / 1000}:d> ${
           formattedGameModes[
             log.battle.mode as keyof typeof formattedGameModes
           ] ?? log.battle.mode
-        } ${result}`
+        }`
       );
     }
 

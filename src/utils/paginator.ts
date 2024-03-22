@@ -1,129 +1,146 @@
-//TODO: Fix this
+import {
+  APIMessageComponentInteraction,
+  ButtonStyle,
+} from 'seyfert/lib/common';
+import { CommandContext } from 'seyfert';
+import {
+  ActionRow,
+  AttachmentBuilder,
+  Button,
+  Embed,
+} from 'seyfert/lib/builders';
+import {
+  ComponentInteraction,
+  Message,
+  StringSelectMenuInteraction,
+  WebhookMessage,
+} from 'seyfert/lib/structures';
 
-// import { ButtonStyle, MessageFlags } from 'seyfert/lib/common';
-// import { CommandContext } from 'seyfert';
-// import { ActionRow, Button, Embed } from 'seyfert/lib/builders';
-// import {
-//   ButtonInteraction,
-//   ChatInputCommandInteraction,
-// } from 'seyfert/lib/structures';
+export class EmbedPaginator {
+  private currentPage = 0;
+  private emojis: IObject;
+  constructor(
+    private context: CommandContext,
+    private pages: Embed[],
+    private baseEmbed: Embed,
+    private files: AttachmentBuilder[]
+  ) {
+    this.emojis = {
+      first: '⏮️',
+      previous: '◀️',
+      next: '▶️',
+      last: '⏭️',
+    };
+  }
 
-// export class EmbedPaginator {
-//   currentPage = 0;
-//   emojis: IObject;
-//   interaction?: ChatInputCommandInteraction;
-//   constructor(
-//     public context: CommandContext,
-//     public pages: Embed[],
-//     public baseEmbed: Embed
-//   ) {
-//     this.emojis = {
-//       first: '⏮️',
-//       previous: '◀️',
-//       next: '▶️',
-//       last: '⏭️',
-//     };
-//   }
+  async start() {
+    const response = await this.context.interaction.editOrReply(
+      {
+        embeds: [this.getEmbed(this.pages[this.currentPage]!)],
+        components: [this.getComponets()],
+        files: this.files || [],
+      },
+      true
+    );
 
-//   start() {
-//     return {
-//       embeds: [this.getEmbed(this.pages[0]!)],
-//       components: this.getListener().addRows(this.getComponets()),
-//     };
-//   }
+    const collector = this.getCollector(response);
 
-//   getComponets() {
-//     const row = new ActionRow();
-//     row.addComponents([
-//       new Button()
-//         .setCustomId('first')
-//         .setStyle(ButtonStyle.Primary)
-//         .setEmoji(this.emojis.first)
-//         .setDisabled(!this.currentPage)
-//         .run(async (interaction) => {
-//           this.currentPage = 0;
-//           await this.changePage(this.pages[0]!, interaction);
-//         }),
-//       new Button()
-//         .setCustomId('previous')
-//         .setStyle(ButtonStyle.Primary)
-//         .setEmoji(this.emojis.previous)
-//         .setDisabled(!this.currentPage)
-//         .run(async (interaction) => {
-//           await this.changePage(this.pages[--this.currentPage]!, interaction);
-//         }),
-//       new Button()
-//         .setCustomId('next')
-//         .setStyle(ButtonStyle.Primary)
-//         .setEmoji(this.emojis.next)
-//         .setDisabled(!(this.pages.length > this.currentPage + 1))
-//         .run(async (interaction) => {
-//           await this.changePage(this.pages[++this.currentPage]!, interaction);
-//         }),
-//       new Button()
-//         .setCustomId('last')
-//         .setStyle(ButtonStyle.Primary)
-//         .setEmoji(this.emojis.last)
-//         .setDisabled(this.currentPage + 1 === this.pages.length)
-//         .run(async (interaction) => {
-//           this.currentPage = this.pages.length - 1;
-//           await this.changePage(this.pages[this.currentPage]!, interaction);
-//         }),
-//     ]);
+    for (const button of ['first', 'previous', 'next', 'last']) {
+      collector.run(button, async (interaction) => {
+        switch (button) {
+          case 'first':
+            this.currentPage = 0;
+            break;
+          case 'previous':
+            this.currentPage--;
+            break;
+          case 'next':
+            this.currentPage++;
+            break;
+          case 'last':
+            this.currentPage = this.pages.length - 1;
+            break;
+        }
 
-//     return row;
-//   }
+        await this.changePage(this.pages[this.currentPage]!, interaction);
+      });
+    }
+  }
 
-//   getListener() {
-//     const componentsListener = new ComponentsListener({
-//       timeout: 60000,
-//       filter: (interaction) => {
-//         if (interaction.user.id !== this.context.author.id) {
-//           return interaction.write({
-//             content: this.context.t.commands.errors
-//               .noUserButton(interaction.user.tag)
-//               .get(),
-//             flags: MessageFlags.Ephemeral,
-//           });
-//         }
+  private getComponets() {
+    const row = new ActionRow();
+    row.addComponents([
+      new Button()
+        .setCustomId('first')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji(this.emojis.first)
+        .setDisabled(!this.currentPage),
+      new Button()
+        .setCustomId('previous')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji(this.emojis.previous)
+        .setDisabled(!this.currentPage),
+      new Button()
+        .setCustomId('next')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji(this.emojis.next)
+        .setDisabled(!(this.pages.length > this.currentPage + 1)),
+      new Button()
+        .setCustomId('last')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji(this.emojis.last)
+        .setDisabled(this.currentPage + 1 === this.pages.length),
+    ]);
 
-//         return true;
-//       },
-//       onStop: async (reason) => {
-//         if (reason === 'timeout') {
-//           await this.context.editOrReply({
-//             components: [],
-//           });
-//         }
-//       },
-//     });
+    return row;
+  }
 
-//     return componentsListener;
-//   }
+  private getCollector(response: WebhookMessage | Message) {
+    const collector = response.createComponentCollector({
+      timeout: 60000,
+      filter: (i) => {
+        return i.user.id === this.context.author.id;
+      },
+      onStop: async (reason) => {
+        if (reason === 'timeout') {
+          await response.edit({
+            body: { components: [] },
+          });
+        }
+      },
+    });
 
-//   changePage(page: Embed, interaction: ButtonInteraction) {
-//     return interaction.update({
-//       embeds: [this.getEmbed(page)],
-//       components: this.getListener().addRows(this.getComponets()),
-//     });
-//   }
+    return collector;
+  }
 
-//   getEmbed(embed: Embed) {
-//     const result = new Embed({
-//       ...this.baseEmbed.data,
-//       ...embed.data,
-//     }).setFooter({
-//       text: this.baseEmbed.data.footer
-//         ? `${this.baseEmbed.data.footer.text} | Page ${this.currentPage + 1}/${
-//             this.pages.length
-//           }`
-//         : `Page ${this.currentPage + 1}/${this.pages.length}`,
-//     });
+  private async changePage(
+    page: Embed,
+    interaction:
+      | ComponentInteraction<boolean, APIMessageComponentInteraction>
+      | StringSelectMenuInteraction<string[]>
+  ) {
+    const embed = this.getEmbed(page);
+    await interaction.update({
+      embeds: [embed],
+      components: [this.getComponets()],
+    });
+  }
 
-//     return result;
-//   }
-// }
+  private getEmbed(embed: Embed) {
+    const result = new Embed({
+      ...this.baseEmbed.data,
+      ...embed.data,
+    }).setFooter({
+      text: this.baseEmbed.data.footer
+        ? `${this.baseEmbed.data.footer.text} | Page ${this.currentPage + 1}/${
+            this.pages.length
+          }`
+        : `Page ${this.currentPage + 1}/${this.pages.length}`,
+    });
+    return result;
+  }
+}
 
-// export interface IObject {
-//   [index: string]: any;
-// }
+export interface IObject {
+  [index: string]: any;
+}

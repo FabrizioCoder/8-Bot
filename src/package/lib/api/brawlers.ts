@@ -1,21 +1,24 @@
-import type { $Fetch } from "ofetch";
-import type { BrawlerListResponse, Brawler } from "../types/brawlers";
+import type { $Fetch } from 'ofetch';
+import type { BrawlerListResponse, BABrawler } from '../types/brawlers';
 
 export class BrawlersApi {
-	private readonly $fetch: $Fetch;
+  private readonly $fetch: $Fetch;
 
-	public constructor($fetch: $Fetch) {
-		this.$fetch = $fetch;
-	}
+  public constructor($fetch: $Fetch) {
+    this.$fetch = $fetch;
+  }
 
-	public async getAll(limit?: number) {
-		const { items } = await this.$fetch<BrawlerListResponse>("/brawlers", {
-			...(limit && { query: { limit } }),
-		});
-		return items;
-	}
+  public async getAll(limit?: number) {
+    const { list } = await this.$fetch<BrawlerListResponse>('/brawlers', {
+      baseURL: 'https://api.brawlapi.com/v1',
+      ...(limit && { query: { limit } }),
+    });
+    return list;
+  }
 
-	public async get(id: number) {
-		return this.$fetch<Brawler>(`/brawlers/${id}`);
-	}
+  public async get(id: number) {
+    return this.$fetch<BABrawler>(`/brawlers/${id}`, {
+      baseURL: 'https://api.brawlapi.com/v1',
+    });
+  }
 }

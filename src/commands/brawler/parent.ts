@@ -7,11 +7,11 @@ import {
 } from 'seyfert';
 
 @Declare({
-  name: 'player',
-  description: 'player commands',
+  name: 'blawler',
+  description: 'blawler commands',
 })
 @AutoLoad()
-export default class PlayerCommands extends Command {
+export default class BrawlerCommands extends Command {
   async onRunError(context: CommandContext, error: unknown) {
     context.client.logger.fatal(error);
     await context.editOrReply({
