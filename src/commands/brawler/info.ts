@@ -66,7 +66,7 @@ export default class Info extends SubCommand {
       .setURL(brawler.link)
       .setDescription(brawler.description)
       .setColor(parseInt(brawler.rarity.color.replace('#', ''), 16))
-      .setThumbnail(brawler.imageUrl)
+      .setThumbnail(brawler.imageUrl2)
       .setFooter({
         text: `Rarity: ${brawler.rarity.name}`,
       })

@@ -8,11 +8,11 @@ import {
   Embed,
   AttachmentBuilder,
 } from 'seyfert';
-import { Battlelog, GameModes, Player } from '../../package';
+import { BasicPlayer, Battlelog, GameModes, Player } from '../../package';
 import { makeBattleLogGraphic } from '../../utils/images/battlelog';
 import { Colors, formattedGameModes } from '../../utils/constants';
 import { EmbedPaginator } from '../../utils/paginator';
-import { getIcon } from '../../utils/functions';
+import { capitalizeString, getIcon, rawEmote } from '../../utils/functions';
 import { formatTag } from '../../package/functions';
 
 const cmd = {
@@ -59,7 +59,7 @@ export default class BattleLog extends SubCommand {
       });
     }
 
-    const content = this.getContent(logs);
+    const content = this.getContent(logs, player);
     const averages = this.getAverages(logs);
     const playerBuffer = await makeBattleLogGraphic(averages);
     const icon = getIcon(player.icon.id)!;
@@ -100,11 +100,18 @@ export default class BattleLog extends SubCommand {
     await paginator.start();
   }
 
-  private getContent(logs: Battlelog[]): string[] {
+  private getContent(logs: Battlelog[], p: Player): string[] {
     const content = <string[]>[];
     for (let i = 0; i < logs.length; i++) {
       const log = logs[i]!;
-      // const map = log.event.map ? `- ${log.event.map}` : '';
+      let player: BasicPlayer;
+      for (const PLAYER of log.battle.teams?.flat()!) {
+        if (PLAYER.tag === p.tag) {
+          player = PLAYER;
+          break;
+        }
+      }
+
       const result = log.battle.result
         ? `[${
             log.battle.result === 'victory'
@@ -114,8 +121,12 @@ export default class BattleLog extends SubCommand {
               : '⭕'
           }] `
         : '';
+      const emoji =
+        rawEmote(player!.brawler.id.toString()) +
+          ` ${capitalizeString(player!.brawler.name.toLowerCase())}` ??
+        capitalizeString(player!.brawler.name.toLowerCase());
       content.push(
-        `${result}<t:${log.battleTime.getTime() / 1000}:d> ${
+        `${result}<t:${log.battleTime.getTime() / 1000}:d> **${emoji}** in ${
           formattedGameModes[
             log.battle.mode as keyof typeof formattedGameModes
           ] ?? log.battle.mode

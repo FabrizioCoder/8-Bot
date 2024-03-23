@@ -1,5 +1,6 @@
 import Icons from '../../assets/json/icons.json';
 import Events from '../../assets/json/events.json';
+import Emojis from '../../assets/json/emojis.json';
 
 function getIcon(id: number) {
   return Object.values(Icons).find((icon) => icon.id === id) ?? null;
@@ -15,4 +16,13 @@ function capitalizeString(str: string) {
   return strLowerCase.substring(0, 1).toUpperCase() + strLowerCase.substring(1);
 }
 
-export { getIcon, getEvent, capitalizeString };
+function rawEmote(name: string): string | null {
+  const flattenedEmotes = Emojis.flat();
+  const emote = flattenedEmotes.find(
+    (x: { name: string }) => x && x.name === name
+  );
+
+  return emote ? `<:${emote.name}:${emote.id}>` : null;
+}
+
+export { getIcon, getEvent, capitalizeString, rawEmote };

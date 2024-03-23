@@ -7,7 +7,7 @@ import {
 } from 'seyfert';
 
 @Declare({
-  name: 'blawler',
+  name: 'brawler',
   description: 'blawler commands',
 })
 @AutoLoad()

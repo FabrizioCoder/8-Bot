@@ -98,13 +98,11 @@ export class EmbedPaginator {
   private getCollector(response: WebhookMessage | Message) {
     const collector = response.createComponentCollector({
       timeout: 60000,
-      filter: (i) => {
-        return i.user.id === this.context.author.id;
-      },
+      filter: (i) => i.user.id === this.context.author.id,
       onStop: async (reason) => {
         if (reason === 'timeout') {
-          await response.edit({
-            body: { components: [] },
+          await this.context.editOrReply({
+            components: [],
           });
         }
       },
