@@ -1,9 +1,14 @@
 import Icons from '../../assets/json/icons.json';
 import Events from '../../assets/json/events.json';
 import Emojis from '../../assets/json/emojis.json';
+import Brawlers from '../../assets/json/brawlers.json';
 
 function getIcon(id: number) {
   return Object.values(Icons).find((icon) => icon.id === id) ?? null;
+}
+
+function getBrawler(id: number) {
+  return Object.values(Brawlers).find((brawler) => brawler.id === id) ?? null;
 }
 
 function getEvent(id: number) {
@@ -25,4 +30,4 @@ function rawEmote(name: string): string | null {
   return emote ? `<:${emote.name}:${emote.id}>` : null;
 }
 
-export { getIcon, getEvent, capitalizeString, rawEmote };
+export { getIcon, getBrawler, getEvent, capitalizeString, rawEmote };

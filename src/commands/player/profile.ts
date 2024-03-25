@@ -5,12 +5,11 @@ import {
   Options,
   createStringOption,
   OKFunction,
-  Embed,
+  AttachmentBuilder,
 } from 'seyfert';
-import { getIcon } from '../../utils/functions';
 import { formatTag } from '../../package/functions';
 import { Player } from '../../package';
-import { Colors } from '../../utils/constants';
+import { makeProfileImage } from '../../utils/images/profile';
 
 const options = {
   tag: createStringOption({
@@ -41,17 +40,17 @@ export default class Profile extends SubCommand {
       });
     }
 
-    const icon = getIcon(player.icon.id)!;
+    const buffer = await makeProfileImage(player);
 
-    // console.log(player);
-    const embed = new Embed()
-      .setColor(Colors.DodgerBlue)
-      .setAuthor({
-        name: `${player.name} (${player.tag})`,
-        url: `https://brawlify.com/stats/profile/${formatTag(player.tag)}`,
-      })
-      .setThumbnail(icon.imageUrl);
-
-    ctx.editOrReply({ embeds: [embed] });
+    await ctx.editOrReply({
+      content: `${player.name} ([${
+        player.tag
+      }](https://brawlify.com/stats/profile/${formatTag(player.tag)}))`,
+      files: [
+        new AttachmentBuilder()
+          .setFile('buffer', buffer)
+          .setName('player-profile.png'),
+      ],
+    });
   }
 }

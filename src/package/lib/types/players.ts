@@ -17,6 +17,7 @@ export interface Player {
 	soloVictories: number;
 	tag: string;
 	trophies: number;
+	brawlers?: PlayerBrawler[];
 }
 
 export interface RankingsPlayer {

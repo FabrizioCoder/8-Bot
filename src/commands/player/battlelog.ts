@@ -61,6 +61,7 @@ export default class BattleLog extends SubCommand {
 
     const content = this.getContent(logs, player);
     const averages = this.getAverages(logs);
+    const stats = this.getStats(logs);
     const playerBuffer = await makeBattleLogGraphic(averages);
     const icon = getIcon(player.icon.id)!;
 
@@ -74,7 +75,7 @@ export default class BattleLog extends SubCommand {
       .setTitle(`Battle Log for ${player.name}`)
       .setThumbnail(icon.imageUrl)
       .setFooter({
-        text: `The graph shows the time played in the last ${logs.length} games.`,
+        text: `The graph shows the time played in the last ${logs.length} games.\n${stats.wins}W/${stats.losses}L/${stats.draws}D (${stats.winRate}%)`,
       });
 
     const shards = shard(content, 10);
@@ -100,13 +101,13 @@ export default class BattleLog extends SubCommand {
     await paginator.start();
   }
 
-  private getContent(logs: Battlelog[], p: Player): string[] {
+  private getContent(logs: Battlelog[], selfPlayer: Player): string[] {
     const content = <string[]>[];
     for (let i = 0; i < logs.length; i++) {
       const log = logs[i]!;
       let player: BasicPlayer;
-      for (const PLAYER of log.battle.teams?.flat()!) {
-        if (PLAYER.tag === p.tag) {
+      for (const PLAYER of (log.battle.teams?.flat() || log.battle.players)!) {
+        if (PLAYER.tag === selfPlayer.tag) {
           player = PLAYER;
           break;
         }
@@ -120,13 +121,17 @@ export default class BattleLog extends SubCommand {
               ? '❌'
               : '⭕'
           }] `
-        : '';
+        : log.battle.rank
+        ? `[${rank[log.battle.rank.toString()!]}] `
+        : '[🔹] ';
       const emoji =
         rawEmote(player!.brawler.id.toString()) +
           ` ${capitalizeString(player!.brawler.name.toLowerCase())}` ??
         capitalizeString(player!.brawler.name.toLowerCase());
       content.push(
-        `${result}<t:${log.battleTime.getTime() / 1000}:d> **${emoji}** in ${
+        `${result}${types[log.battle.type]} <t:${
+          log.battleTime.getTime() / 1000
+        }:d> **${emoji}** in ${
           formattedGameModes[
             log.battle.mode as keyof typeof formattedGameModes
           ] ?? log.battle.mode
@@ -155,9 +160,31 @@ export default class BattleLog extends SubCommand {
       }
     });
 
+    averages = Object.fromEntries(
+      Object.entries(averages).filter(([, value]) => value > 0)
+    ) as AverageData;
+
     return Object.fromEntries(
       Object.entries(averages).sort(([, a], [, b]) => a - b)
     ) as AverageData;
+  }
+
+  private getStats(logs: Battlelog<Date>[]) {
+    // return wins, losses, draws, and win rate
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+
+    for (const log of logs) {
+      if (!log.battle.result) continue;
+      if (log.battle.result === 'victory') wins++;
+      if (log.battle.result === 'defeat') losses++;
+      if (log.battle.result === 'draw') draws++;
+    }
+
+    const winRate = Math.round((wins / (wins + losses + draws)) * 100);
+
+    return { wins, losses, draws, winRate };
   }
 }
 
@@ -172,3 +199,21 @@ function shard(array: string[], length: number): string[][] {
   }
   return final;
 }
+
+const rank: { [key: string]: string } = {
+  1: '🥇',
+  2: '🥈',
+  3: '🥉',
+  4: '4️⃣',
+  5: '5️⃣',
+  6: '6️⃣',
+  7: '7️⃣',
+  8: '8️⃣',
+  9: '9️⃣',
+  10: '🔟',
+};
+
+const types: { [key: string]: string } = {
+  friendly: '🫂',
+  ranked: '🏆',
+};
