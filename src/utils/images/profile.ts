@@ -4,10 +4,11 @@ import { join } from 'path';
 import { Player } from '../../package';
 import { getBrawler, getIcon } from '../functions';
 import sharp from 'sharp';
+import { UsingClient } from 'seyfert';
 
 const background = join(process.cwd(), 'assets', 'images', 'bg.png');
 
-export async function makeProfileImage(player: Player) {
+export async function makeProfileImage(client: UsingClient, player: Player) {
   const canvas = await Image.decode(await readFile(background));
   const boldFont = await readFile(
     join(process.cwd(), 'assets', 'fonts', 'LilitaOne-Regular.ttf')
@@ -32,7 +33,7 @@ export async function makeProfileImage(player: Player) {
   const highestTrophies = await Image.renderText(
     boldFont,
     24,
-    player.highestTrophies.toLocaleString(),
+    `${player.highestTrophies.toLocaleString()} (${player.trophies.toLocaleString()})`,
     0xffffffff
   );
   canvas.composite(
@@ -62,7 +63,7 @@ export async function makeProfileImage(player: Player) {
   );
 
   // 3vs3 VICTORIES
-  const posX3 = 715 + 247 / 2;
+  const posX3 = 704 + 258 / 2;
   const posY3 = 194 + 33 / 2;
   const _3vs3Victories = await Image.renderText(
     boldFont,
@@ -122,15 +123,27 @@ export async function makeProfileImage(player: Player) {
   );
 
   // CLUB
-  const posX7 = 1510 + 244 / 2;
-  const posY7 = 107 + 189 / 2 - 123;
-  const club = await Image.renderText(
-    boldFont,
-    40,
-    player.club.name ?? 'No Club',
-    0xffffffff
-  );
-  canvas.composite(club, posX7 - club.width / 2, posY7 - club.height / 2);
+  if (player.club.name) {
+    const posX7 = 1424 + 244 / 2;
+    const posY7 = 134 + 189 / 2 - 123;
+    const club = await Image.renderText(
+      boldFont,
+      40,
+      player.club.name ?? 'No Club',
+      0xbbbbbbbb
+    );
+    canvas.composite(club, posX7 - club.width / 2, posY7 - club.height / 2);
+
+    // CLUB ICON
+    const clubData = await client.api.clubs.get(player.club.tag);
+    const icon = `https://cdn-old.brawlify.com/club/${clubData.badgeId}.png`;
+    const fetchIcon = await fetch(icon).then((res) => res.arrayBuffer());
+    const resizedIcon = await sharp(Buffer.from(fetchIcon))
+      .resize(150, 168)
+      .toBuffer();
+    const clubIcon = await Image.decode(resizedIcon);
+    canvas.composite(clubIcon, posX7 - clubIcon.width / 2, 154);
+  }
 
   const chunkBrawlers = chunk(
     player

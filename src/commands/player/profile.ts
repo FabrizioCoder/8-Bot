@@ -40,7 +40,7 @@ export default class Profile extends SubCommand {
       });
     }
 
-    const buffer = await makeProfileImage(player);
+    const buffer = await makeProfileImage(ctx.client, player);
 
     await ctx.editOrReply({
       content: `${player.name} ([${
