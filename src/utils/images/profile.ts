@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises';
 import { Image } from 'imagescript';
 import { join } from 'path';
-import { Player } from '../../package';
+import { Player, PlayerBrawler } from '../../package';
 import { getBrawler, getIcon } from '../functions';
 import sharp from 'sharp';
 import { UsingClient } from 'seyfert';
@@ -150,24 +150,17 @@ export async function makeProfileImage(client: UsingClient, player: Player) {
       .brawlers!.sort((a, b) => b.rank - a.rank)
       .map((brawler) => {
         const b = getBrawler(brawler.id)!;
-        const icon = `https://cdn-old.brawlify.com/brawler/${b.path}.png`;
-        const rank = `https://cdn-old.brawlify.com/rank/${brawler.rank}.png`;
-        return {
-          ...brawler,
-          name: b.name,
-          imageUrl: icon,
-          rankUrl: rank,
-        };
+        return { ...brawler, name: b.name };
       }),
     13
   );
-
   for (let i = 0; i < chunkBrawlers.length; i++) {
     const brawlers = chunkBrawlers[i]!;
     for (let j = 0; j < brawlers.length; j++) {
       const brawler = brawlers[j]!;
-      const buffer = await fetch(brawler.imageUrl).then((res) =>
-        res.arrayBuffer()
+      const name = brawler.name.replace(/ /g, '-');
+      const buffer = await readFile(
+        join(process.cwd(), 'assets', 'images', 'brawlers', `${name}.png`)
       );
       const resizedBrawler = await sharp(Buffer.from(buffer))
         .resize(120, 120)
@@ -175,8 +168,8 @@ export async function makeProfileImage(client: UsingClient, player: Player) {
       const brawlerImage = await Image.decode(resizedBrawler);
       canvas.composite(brawlerImage, 50 + j * 142, 340 + i * 122);
 
-      const rankBuffer = await fetch(brawler.rankUrl).then((res) =>
-        res.arrayBuffer()
+      const rankBuffer = await readFile(
+        join(process.cwd(), 'assets', 'images', 'ranks', `${brawler.rank}.png`)
       );
       const resizedRank = await sharp(Buffer.from(rankBuffer))
         .resize(44, 50)
@@ -196,7 +189,7 @@ export async function makeProfileImage(client: UsingClient, player: Player) {
   canvas.composite(watermark, canvas.width / 2 - watermark.width / 2, 0);
 
   return Buffer.from(
-    await canvas.encode(0.2, {
+    await canvas.encode(0.1, {
       author: '8-Bot#7291',
       title: 'Player Profile Image',
       creationTime: Date.now(),
@@ -204,9 +197,9 @@ export async function makeProfileImage(client: UsingClient, player: Player) {
   );
 }
 
-function chunk(array: Brawler[], length: number): Brawler[][] {
+function chunk(array: PlayerBrawler[], length: number): PlayerBrawler[][] {
   if (!(array instanceof Array)) return array;
-  const final: Brawler[][] = [];
+  const final: PlayerBrawler[][] = [];
   let i = 0;
   for (const element of array) {
     if (!final[i]) final[i] = [];
@@ -216,9 +209,9 @@ function chunk(array: Brawler[], length: number): Brawler[][] {
   return final;
 }
 
-interface Brawler {
-  name: string;
-  trophies: number;
-  imageUrl: string;
-  rankUrl: string;
-}
+// interface Brawler {
+//   name: string;
+//   trophies: number;
+//   imageUrl: string;
+//   rank: number;
+// }

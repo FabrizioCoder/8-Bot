@@ -3,6 +3,8 @@
 
 # Privates
 **/*-private.*
+assets/images/brawlers/*
+assets/images/ranks/*
 
 # Deps
 node_modules/
