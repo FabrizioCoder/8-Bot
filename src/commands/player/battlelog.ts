@@ -129,7 +129,7 @@ export default class BattleLog extends SubCommand {
           ` ${capitalizeString(player!.brawler.name.toLowerCase())}` ??
         capitalizeString(player!.brawler.name.toLowerCase());
       content.push(
-        `${result}${types[log.battle.type]} <t:${
+        `${result}${types[log.battle.type] ?? log.battle.type} <t:${
           log.battleTime.getTime() / 1000
         }:d> **${emoji}** in ${
           formattedGameModes[
@@ -216,4 +216,6 @@ const rank: { [key: string]: string } = {
 const types: { [key: string]: string } = {
   friendly: '🫂',
   ranked: '🏆',
+  soloRanked: '🏆',
+  duoRanked: '🏆',
 };
