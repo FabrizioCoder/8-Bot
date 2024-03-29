@@ -18,7 +18,12 @@ export async function makeProfileImage(client: UsingClient, player: Player) {
   const buffer = await fetch(icon).then((res) => res.arrayBuffer());
   const resized = await sharp(Buffer.from(buffer)).resize(278, 278).toBuffer();
   canvas.composite(await Image.decode(resized), 35, 35);
-  const text = await Image.renderText(boldFont, 96, player.name, 0xffffffff);
+  const text = await Image.renderText(
+    boldFont,
+    96,
+    player.name,
+    parseInt(player.nameColor.replace('#', '') + 'ff')
+  );
   canvas.composite(text, 384, 25);
 
   // TAG
